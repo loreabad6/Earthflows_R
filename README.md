@@ -3,4 +3,4 @@ Calculate terrain derivatives for Earthflow detection. The workflow mainly uses 
 
 This repository is meant to hold the workflow and code, and not the actual generated files, due to their size. Majority of folders will be empty but should be filled with the relevant layers that correspond on each. Mainly it is to keep the structure that the code itself will hold. 
 
-In addition to using R, some parts of the workflow are performed in ArcGIS and eCognition. Since this sections are not coded, they will be thoroughly described to guarantee reproducibility. 
+In addition to using R, some parts of the workflow are performed in ArcGIS and eCognition. Since these sections are not coded, they will be thoroughly described to guarantee reproducibility. 
