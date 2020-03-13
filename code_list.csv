@@ -1,0 +1,33 @@
+Derivative Name;File Coding Name;Module;Code
+Aspect;aspect;ta_morphometry;0
+Convergence Index;cvidx;ta_morphometry;1
+Crossectional Curvature;ccros;ta_morphometry;0
+Curvature (General Curvature);cgene;ta_morphometry;0
+Downslope distance gradient;ddgrd;ta_morphometry;9
+Hillshade;shade;ta_lighting;0
+Longitudinal Curvature;clong;ta_morphometry;0
+LS Factor;lsfct;ta_hydrology;22
+Mass Balance Index;mbidx;ta_morphometry;10
+Maximum Curvature;cmaxi;ta_morphometry;0
+Melton Ruggedness Index;mridx;ta_hydrology;23
+Midslope position;mdslp;ta_morphometry;14
+Minimum Curvature;cmini;ta_morphometry;0
+Negative Openness;negop;ta_lighting;5
+Normalized Height;nrhgt;ta_morphometry;14
+Plan Curvature;cplan;ta_morphometry;0
+Positive Openness;posop;ta_lighting;5
+Profile Curvature;cprof;ta_morphometry;0
+SAGA Wetness Index;sagaw;ta_hydrology;15
+Sky view factor;svfct;ta_lighting;3
+Slope;slope;ta_morphometry;0
+Slope Height;slhgt;ta_morphometry;14
+Slope length;sllgt;ta_hydrology;7
+Standardized Height;sthgt;ta_morphometry;14
+Stream Power Index;spidx;ta_hydrology;21
+Terrain Ruggedness Index;tridx;ta_morphometry;16
+Topographic Wetness Index;twidx;ta_hydrology;20
+Texture;textu;ta_morphometry;20
+Topographic Position Index;tpidx;ta_morphometry;18
+Valley Depth;vldpt;ta_morphometry;14
+Vertical Distance To Channel Network;vdcnw;ta_channels;3
+Visible Sky;visky;ta_lighting;3

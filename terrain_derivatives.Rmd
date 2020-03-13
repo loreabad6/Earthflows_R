@@ -1,0 +1,527 @@
+---
+title: "Terrain Derivatives Tiraumea - NZ"
+author: "Lorena Abad"
+date: "`r format(Sys.time(), '%d.%m.%Y')`"
+output:
+  html_notebook:
+    code_folding: hide
+    toc: yes
+    toc_depth: 5
+    toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '5'
+    toc_float: yes
+---
+
+```{r, echo = F}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+```
+
+# Aim and Study Area
+
+From a 1m DSM in the Tiraumea catchment, New Zealand, terrain derivatives will be computed with the following code.
+The aim is to detect Earthflows, possibly through machine learning, where a model would be fed with 
+the terrain derivatives, and optical information. 
+
+The study area is showed below:
+
+```{r}
+# Call mapping library and set options
+library(mapview)
+mapviewOptions(basemaps = 'OpenStreetMap', console = F, verbose = F, leafletWidth = 800)
+```
+ 
+
+```{r}
+library(sf, quietly = T, verbose = F, warn.conflicts = F)
+tiraumea = st_read('study_area/Tiraumea.shp', quiet = T) 
+mapview(tiraumea)
+```
+
+# Methods
+
+Earthflows have distinct characteristics that define them, which can somehow be inferred from topographic characteristics. A set of topographic variables have been selected for calculation on the original 1m DSM and on a filter version of it, to 3m. The variables computed are listed below:
+
+```{r}
+list = read.csv('code_list.csv', sep = ';')
+library(dplyr, quietly = T)
+list %>% arrange(desc(Module), Derivative.Name)
+```
+
+The naming convention will include the stated `name` above and for the layers computed based on the 3m filtered window, they will have the suffix `3x3`. 
+
+Some variables unfortunately, have to be computed on the SAGA GUI given that RSAGA does not work with its later version, and several new computation ways have been implemented here that might help with faster and better results. This variables are 'LS-Factor' (lsfct), 'Stream Power Index' (spidx) and 'Topographic Wetness Index' (twidx).
+
+## Workflow
+
+### Getting started
+
+In order to make the RSAGA workflow work, it is first needed to convert the original DSM into a SAGA compatible format (.sgrd)
+
+```{r, eval = F}
+dsm = raster('data_rs/2016_HRC_DSM_tiraumea.tif')
+writeRaster(dsm, 'terrain/input_dsm/dsm.sgrd', format = 'SAGA', overwrite = T, NAflag = 0, prj = T)
+```
+
+Then, we prepare the `RSAGA` environment. Currently the SAGA files are on the same project, so there is no need to change the paths. Check that SAGA versions are always compatible when transferring to other computers.
+
+```{r, eval = F}
+library(RSAGA)
+env = rsaga.env(
+  path = "software\\saga-7.6.1_x64",
+  modules = "software\\saga-7.6.1_x64\\tools"
+  # cmd =  "software\\saga-7.6.1_x64\\saga_cmd.exe" # For some reason this throws an error, but when commented out it still works. 
+)
+```
+
+
+### Generating Terrain Derivatives
+
+Initially, we will do a simple filter of the original DSM, to then be able to compute derivatives on all the values. 
+
+```{r, eval = F}
+rsaga.filter.simple(
+  in.grid = 'terrain/input_dsm/dsm.sgrd', 
+  out.grid = 'terrain/input_dsm/dsm_3x3.sgrd', 
+  method = 'smooth', radius = 3, mode = 'square', 
+  env = env
+)
+```
+
+Below, all the used derivatives will be explained with code, and when needed with additional information. Everything will be computed both for the original DSM and for the filtered 3x3 DSM. 
+
+#### Morphometry module
+
+##### Slope, Aspect, Curvature module
+
+With this I will compute overall 9 outputs:
+
+* Aspect (aspect) 
+* Slope (slope) in degrees
+* General Curvature (cgene)
+* Plan Curvature (cplan)
+* Profile Curvature (cprof)
+* Crossectional curvature (ccros)
+* Longitudinal curvature (clong)
+* Max. curvature (cmaxi)
+* Min. curvature (cmini)
+
+```{r, eval = F}
+rsaga.slope.asp.curv(
+  in.dem = "terrain/input_dsm/dsm.sgrd", 
+  out.slope = "terrain/out_products/slope.sgrd",
+  out.cgene = "terrain/out_products/cgene.sgrd",
+  out.cplan = "terrain/out_products/cplan.sgrd",
+  out.cprof = "terrain/out_products/cprof.sgrd",
+  out.ccros = "terrain/out_products/ccros.sgrd",
+  out.clong = "terrain/out_products/clong.sgrd",
+  out.cmaxi = "terrain/out_products/cmaxi.sgrd",
+  out.cmini = "terrain/out_products/cmini.sgrd", 
+  unit.slope = "degrees", env = env,
+  method = "poly2zevenbergen"
+)
+```
+
+#### Relative heights and slope positions 
+
+From this modules on, I will need to find out the usage first, because there are no shortcuts for them. I will always refer to this table for the **morphometry** module to get the respective code:
+
+```{r}
+rsaga.get.modules('ta_morphometry', env = env) %>% knitr::kable()
+```
+
+
+```{r, eval = F}
+rsaga.get.usage('ta_morphometry', 14, env = env)
+```
+
+From here I will get 5 outputs, and will work with default W, T, E. 
+
+ * Slope height (slhgt)
+ * Valley depth (vldpt)
+ * Normalized height (nrhgt)
+ * Standardized height (sthgt)
+ * Mid-slope position (mdslp)
+ 
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_morphometry', 14, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    HO='terrain/out_products/slhgt.sgrd', 
+    HU='terrain/out_products/vldpt.sgrd',
+    NH='terrain/out_products/nrhgt.sgrd',
+    SH='terrain/out_products/sthgt.sgrd',
+    MS='terrain/out_products/mdslp.sgrd'
+  ),
+  env = env
+)
+```
+
+#### Downslope distance gradient
+
+This tool has its own module, and will return one outcome, coded 'ddgrd'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_morphometry', 9, env = env)
+```
+
+And call it, with default distance (10) and gradient in degrees:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_morphometry', 9, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    GRADIENT='terrain/out_products/ddgrd.sgrd', 
+    OUTPUT = 2
+  ),
+  env = env
+)
+```
+
+#### Mass Balance Index
+
+This tool has its own module, and will return one outcome, coded 'mbidx'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_morphometry', 10, env = env)
+```
+
+And compute with all the defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_morphometry', 10, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    MBI='terrain/out_products/mbidx.sgrd' 
+  ),
+  env = env
+)
+```
+
+#### Topographic Position Index
+
+This tool has its own module, and will return one outcome, coded 'tpidx'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_morphometry', 18, env = env)
+```
+
+And compute with all the defaults, min and max are definitely needed and vary depending on the raster resolution. If not used properly computation will be exhaustive.
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_morphometry', 18, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    TPI='terrain/out_products/tpidx.sgrd',
+    RADIUS_MIN=0,
+    RADIUS_MAX=20
+  ),
+  env = env
+)
+```
+
+#### Convergence Index
+
+This tool has its own module, and will return one outcome, coded 'cvidx'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_morphometry', 1, env = env)
+```
+
+And compute with method gradient and neighbours 3x3:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_morphometry', 1, 
+  list(
+    ELEVATION='terrain/input_dsm/dsm.sgrd', 
+    RESULT='terrain/out_products/cvidx.sgrd', 
+    METHOD=1,
+    NEIGHBOURS=1
+  ),
+  env = env
+)
+```
+
+#### Terrain Roughness Index
+
+This tool has its own module, and will return one outcome, coded 'tridx'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_morphometry', 16, env = env)
+```
+
+And compute with all the defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_morphometry', 16, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    TRI='terrain/out_products/tridx.sgrd'
+  ),
+  env = env
+)
+```
+
+#### Texture 
+
+This tool has its own module, and will return one outcome, coded 'textu'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_morphometry', 20, env = env)
+```
+
+And compute with all the defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_morphometry', 20, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    TEXTURE='terrain/out_products/textu.sgrd'
+  ),
+  env = env
+)
+```
+
+### Hydrology module
+
+Again I will access the codes for the tools to get the usage:
+
+```{r}
+rsaga.get.modules('ta_hydrology', env = env) %>% knitr::kable()
+```
+
+#### Melton Ruggedness Index
+
+This tool has its own module, and will return one outcome, coded 'mridx'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_hydrology', 23, env = env)
+```
+
+And compute with all the defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_hydrology', 23, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    MRN='terrain/out_products/mridx.sgrd'
+  ),
+  env = env
+)
+```
+
+#### LS Factor
+
+This particular tool I had to compute using the GUI for SAGA, because `RSAGA` does not let me use the `LS Factor (one step)` library that I need to do it right. In the GUI I only need to give the DEM. It is saved as 'lsfct'.
+
+#### SAGA Wetness Index
+
+This tool has its own module, and will return one outcome, coded 'sagaw'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_hydrology', 15, env = env)
+```
+
+And compute with defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_hydrology', 15, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    TWI='terrain/out_products/sagaw.sgrd'
+  ),
+  env = env
+)
+```
+
+#### Slope Length
+
+This tool has its own module, and will return one outcome, coded 'sllgt'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('ta_hydrology', 7, env = env)
+```
+
+And compute with defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_hydrology', 7, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    LENGTH='terrain/out_products/sllgt.sgrd'
+  ),
+  env = env
+)
+```
+
+#### Stream Power Index
+
+To compute this index, some previous steps are required. The version incompatibility of SAGA 7.5 and RSAGA does not support this computation(?), at least in an intuitive way. So I compute on the SAGA GUI.
+
+The steps I took were:
+
+1. Calculate *Flow Accumulation (One Step)* on the `ta_hidrology` module. The only input is the DEM. The intermediate output needed is the *Specific Catchment Area*. I saved this on the `int_products` directory as 'spcar'. Specific parameters are:
+    + Preprocessing: Fill Sinks (Wang & Liu)
+    + Flow Routing: Deterministic 8
+    
+2. Compute *Stream Power Index* on the `ta_hidrology` module. Inputs are the Slope and Specific Catchment Area. The result is saved to `terrain/out_products` as 'spidx'.
+
+#### Terrain Wetness Index
+
+This particular tool I had to compute using the GUI for SAGA, because `RSAGA` does not let me use the `TWI (one step)` library that I need to do it right. In the GUI I only need to give the DEM. I selected Deterministic 8 for the Flow Distribution. It is coded 'twidx'.
+
+### Lightning module
+
+Again I will access the codes for the tools to get the usage:
+
+```{r}
+rsaga.get.modules('ta_lighting', env = env) %>% knitr::kable()
+```
+
+#### Sky View Factor **
+
+For this and the next tool, a multiscale parameter is chosen to speed up the computation.
+From this tool we can get two derivatives:
+
+* Sky view factor (svfct) - [not simplified]
+* Visible sky (visky)
+
+```{r, eval = F}
+rsaga.get.usage('ta_lighting', 3, env = env)
+```
+
+And compute with defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_lighting', 3, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    VISIBLE='terrain/out_products/visky.sgrd',
+    SVF='terrain/out_products/svfct.sgrd',
+    METHOD=1,
+    DLEVEL=3
+  ),
+  env = env
+)
+```
+
+#### Topographic Openness **
+
+From this tool we can get two derivatives:
+
+* Positive openness (posop)
+* Negative openness (negop)
+
+```{r}
+rsaga.get.usage('ta_lighting', 5, env = env)
+```
+
+And compute with defaults:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_lighting', 5, 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    POS='terrain/out_products/posop.sgrd',
+    NEG='terrain/out_products/negop.sgrd',
+    METHOD=0,
+    DLEVEL=3
+  ),
+  env = env
+)
+```
+
+### Channels module
+
+#### Vertical Distance to Channel Network
+
+For this some previous steps are needed, see the complete code:
+
+```{r, eval = F}
+rsaga.get.usage('ta_hydrology', 0, env = env)
+rsaga.geoprocessor(
+  'ta_hydrology', 0, 
+  list(
+    ELEVATION='terrain/input_dsm/dsm.sgrd', 
+    FLOW='int_products/flowsa1.sgrd', 
+    METHOD=0
+  ),
+  env = env
+)
+
+rsaga.get.usage('ta_channels', 0, env = env)
+rsaga.geoprocessor(
+  'ta_channels', 0, 
+  list(
+    ELEVATION='terrain/input_dsm/dsm.sgrd', 
+    CHNLNTWRK='int_products/chnet.sgrd', 
+    INIT_GRID='int_products/flowsa1.sgrd', 
+    INIT_VALUE=1000000
+  ),
+  env = env
+)
+
+rsaga.get.usage('ta_channels', 3, env = env)
+rsaga.geoprocessor(
+  'ta_channels', 3, 
+  list(
+    ELEVATION='terrain/input_dsm/dsm.sgrd',
+    CHANNELS='int_products/chnet.sgrd',
+    DISTANCE='terrain/out_products/vdcnw.sgrd'
+  ),
+  env = env
+)
+
+```
+
+
+### Final steps
+
+Useful function to convert to `.tif` extension. 
+
+```{r, eval = F}
+library(gdalUtils)
+files = list.files(path = "./terrain/out_products", pattern = "*.sdat$", full.names = T)
+batch_gdal_translate(
+  infiles = files,
+  outdir = "./terrain/out_products",
+  outsuffix = ".tif"
+)
+```
+
+And fast, view the results:
+
+```{r, eval = F, fig.height=9}
+files = list.files(path = "./terrain/out_products", pattern = "*sa1.*tif", full.names = T)
+file_names = list.files(path = "./terrain/out_products", pattern = "*sa1.*tif")
+library(stars)
+library(purrr)
+files_read = files %>% map(function(x) read_stars(x, proxy = T))
+
+par(mfrow = c(5,6))
+invisible(lapply(files_read, function(x) {
+  plot(x, key.pos = NULL, reset = F, main = NULL)
+}))
+```
+
+# References
+
+Eisank, C., Hölbling, D., & Friedl, B. (2014). How well do terrain objects derived from pre-event DEM spatially correspond to landslides? Geological Society of America *Abstracts with Programs*, 46(6), 105. Vancouver, Canada.
