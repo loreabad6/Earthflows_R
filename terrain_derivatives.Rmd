@@ -106,6 +106,24 @@ rsaga.filter.simple(
 
 Below, all the used derivatives will be explained with code, and when needed with additional information. Everything will be computed both for the original DSM and for the filtered 3x3 DSM. 
 
+For the Topographic Position Index (tpidx) at a filtered stage, the method required a large computational power. Hence, we resampled the DSM to 3m and calculated it based on that. 
+
+```{r, eval = F}
+dsm = raster('data_rs/2016_HRC_DSM_tiraumea.tif') 
+
+rgbi = stack('data_rs/HRC_2016_RGBI_mosaic_tiraumea.kea')
+crs = crs(rgbi)
+crs(dsm) = crs
+
+NAvalue(dsm) = -9999
+
+dsm3 = aggregate(dsm, fact = 3)
+writeRaster(dsm3, 'data_rs/2016_HRC_DSM_tiraumea_3m.tif')
+writeRaster(
+  dsm3, 'terrain/input_dsm/dsm_3m.sgrd', format = 'SAGA', overwrite = T, NAflag = 0, prj = T
+)
+```
+
 ### Morphometry module
 
 #### Slope, Aspect, Curvature module
@@ -238,7 +256,7 @@ This tool has its own module, and will return one outcome, coded 'tpidx'. We get
 rsaga.get.usage('ta_morphometry', 18, env = env)
 ```
 
-And compute with all the defaults, min and max are definitely needed and vary depending on the raster resolution. If not used properly computation will be exhaustive.
+And compute with all the defaults, min and max are definitely needed and vary depending on the raster resolution. If not used properly computation will be exhaustive. Hence, for 1 meter resolution we use 20 and for 3 m, 100 as maximum radious
 
 ```{r, eval = F}
 rsaga.geoprocessor(
@@ -248,6 +266,17 @@ rsaga.geoprocessor(
     TPI='terrain/out_products/tpidx.sgrd',
     RADIUS_MIN=0,
     RADIUS_MAX=20
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'ta_morphometry', 18, 
+  list(
+    DEM="terrain/input_dsm/dsm_3m.sgrd",
+    TPI='terrain/out_products/tpidx_3m.sgrd',
+    RADIUS_MIN=0,
+    RADIUS_MAX=100
   ),
   env = env
 )
@@ -589,6 +618,8 @@ invisible(lapply(files_read, function(x) {
 }))
 ```
 -->
+
+Finally, there is a need to have every input for eCognition on the same CRS. For some reason, eCognition does not recognize this when done with GDAL. Hence, a Model Builder in ArcGIS was prepared to quickly transform everything to `EPSG:2193`, which is recognized and avoids conflicts. 
 
 # References
 

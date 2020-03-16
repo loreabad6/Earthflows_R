@@ -4,7 +4,7 @@
 # ---- Prepare data ----
 
 library(raster)
-dsm = raster('data/OBIA_Daniel/2016_HRC_DSM_tiraumea.tif') 
+dsm = raster('data_rs/2016_HRC_DSM_tiraumea.tif') 
 crs(dsm) = '+init=epsg:2193'
 
 writeRaster(dsm, 'terrain/input_dsm/dsm.sgrd', format = 'SAGA', overwrite = T, NAflag = 0, prj = T)
@@ -22,6 +22,20 @@ rsaga.filter.simple(
   out.grid = 'terrain/input_dsm/dsm_3x3.sgrd', 
   method = 'smooth', radius = 3, mode = 'square', 
   env = env
+)
+
+dsm = raster('data_rs/2016_HRC_DSM_tiraumea.tif') 
+
+rgbi = stack('data_rs/HRC_2016_RGBI_mosaic_tiraumea.kea')
+crs = crs(rgbi)
+crs(dsm) = crs
+
+NAvalue(dsm) = -9999
+
+dsm3 = aggregate(dsm, fact = 3)
+writeRaster(dsm3, 'data_rs/2016_HRC_DSM_tiraumea_3m.tif')
+writeRaster(
+  dsm3, 'terrain/input_dsm/dsm_3m.sgrd', format = 'SAGA', overwrite = T, NAflag = 0, prj = T
 )
 
 # ---- ORIGINAL DSM ----
@@ -263,10 +277,10 @@ rsaga.geoprocessor(
 rsaga.geoprocessor(
   'ta_morphometry', 18, 
   list(
-    DEM='terrain/input_dsm/dsm_3x3.sgrd', 
-    TPI='terrain/out_products/tpidx_3x3.sgrd',
+    DEM="terrain/input_dsm/dsm_3m.sgrd",
+    TPI='terrain/out_products/tpidx_3m.sgrd',
     RADIUS_MIN=0,
-    RADIUS_MAX=20
+    RADIUS_MAX=100
   ),
   env = env
 )
