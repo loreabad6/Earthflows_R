@@ -3,17 +3,29 @@ title: "Terrain Derivatives Tiraumea - NZ"
 author: "Lorena Abad"
 date: "`r format(Sys.time(), '%d.%m.%Y')`"
 output:
-  html_notebook:
-    code_folding: hide
-    toc: yes
-    toc_depth: 5
-    toc_float: yes
   html_document:
     df_print: paged
     toc: yes
-    toc_depth: '5'
+    toc_depth: '4'
+    toc_float: yes
+  html_notebook:
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
     toc_float: yes
 ---
+
+<style>
+p.comment {
+background-color: #DBDBDB;
+padding: 10px;
+border: 1px solid black;
+margin-left: 25px;
+border-radius: 5px;
+font-style: italic;
+}
+
+</style>
 
 ```{r, echo = F}
 knitr::opts_chunk$set(
@@ -58,9 +70,7 @@ The naming convention will include the stated `name` above and for the layers co
 
 Some variables unfortunately, have to be computed on the SAGA GUI given that RSAGA does not work with its later version, and several new computation ways have been implemented here that might help with faster and better results. This variables are 'LS-Factor' (lsfct), 'Stream Power Index' (spidx) and 'Topographic Wetness Index' (twidx).
 
-## Workflow
-
-### Getting started
+## Getting started
 
 In order to make the RSAGA workflow work, it is first needed to convert the original DSM into a SAGA compatible format (.sgrd)
 
@@ -71,7 +81,7 @@ writeRaster(dsm, 'terrain/input_dsm/dsm.sgrd', format = 'SAGA', overwrite = T, N
 
 Then, we prepare the `RSAGA` environment. Currently the SAGA files are on the same project, so there is no need to change the paths. Check that SAGA versions are always compatible when transferring to other computers.
 
-```{r, eval = F}
+```{r, eval = T}
 library(RSAGA)
 env = rsaga.env(
   path = "software\\saga-7.6.1_x64",
@@ -81,7 +91,7 @@ env = rsaga.env(
 ```
 
 
-### Generating Terrain Derivatives
+## Generating Terrain Derivatives
 
 Initially, we will do a simple filter of the original DSM, to then be able to compute derivatives on all the values. 
 
@@ -96,9 +106,9 @@ rsaga.filter.simple(
 
 Below, all the used derivatives will be explained with code, and when needed with additional information. Everything will be computed both for the original DSM and for the filtered 3x3 DSM. 
 
-#### Morphometry module
+### Morphometry module
 
-##### Slope, Aspect, Curvature module
+#### Slope, Aspect, Curvature module
 
 With this I will compute overall 9 outputs:
 
@@ -115,6 +125,7 @@ With this I will compute overall 9 outputs:
 ```{r, eval = F}
 rsaga.slope.asp.curv(
   in.dem = "terrain/input_dsm/dsm.sgrd", 
+  out.aspect = "terrain/out_products/aspect.sgrd",
   out.slope = "terrain/out_products/slope.sgrd",
   out.cgene = "terrain/out_products/cgene.sgrd",
   out.cplan = "terrain/out_products/cplan.sgrd",
@@ -130,7 +141,7 @@ rsaga.slope.asp.curv(
 
 #### Relative heights and slope positions 
 
-From this modules on, I will need to find out the usage first, because there are no shortcuts for them. I will always refer to this table for the **morphometry** module to get the respective code:
+From these modules on, we need to find out the usage first, because there are no shortcuts for them. We always refer to this table for the **morphometry** module to get the respective code:
 
 ```{r}
 rsaga.get.modules('ta_morphometry', env = env) %>% knitr::kable()
@@ -141,7 +152,7 @@ rsaga.get.modules('ta_morphometry', env = env) %>% knitr::kable()
 rsaga.get.usage('ta_morphometry', 14, env = env)
 ```
 
-From here I will get 5 outputs, and will work with default W, T, E. 
+This module will get 5 outputs, and will work with default W, T, E. 
 
  * Slope height (slhgt)
  * Valley depth (vldpt)
@@ -166,6 +177,10 @@ rsaga.geoprocessor(
 
 #### Downslope distance gradient
 
+<p class="comment">
+It describes wet areas by assuming water accumulation in flat areas is due to upslope, local and downslope topography. It is a quantitative estimation of the hydraulic gradient. Obtained by calculating the downhill distance when water loses a determined quantity of energy from precipitation.
+</p>
+
 This tool has its own module, and will return one outcome, coded 'ddgrd'. We get the usage:
 
 ```{r, eval = F}
@@ -188,6 +203,10 @@ rsaga.geoprocessor(
 
 #### Mass Balance Index
 
+ 
+We assume that negative MBI values represent areas of net deposition such as depressions and floodplains; positive MBI values represent areas of net erosion such as hillslopes, and MBI values close to zero indicate areas where there is a balance between erosion and deposition such as low slopes and plain areas. High positive MBI values occur at convex terrain forms, like upper slopes and crests, while lower MBI values are associated with valley areas andconcave zones at lower slopes. Balanced MBI values close to zero can be found in midslope zones and mean a location of no net loss or net accumulation of material.
+ 
+
 This tool has its own module, and will return one outcome, coded 'mbidx'. We get the usage:
 
 ```{r, eval = F}
@@ -209,6 +228,10 @@ rsaga.geoprocessor(
 
 #### Topographic Position Index
 
+<p class="comment">
+TPI measures the relative topographic position of the central point as the difference between the elevation at this point and the mean elevation within a predetermined neighbourhood. Using TPI, landscapes can be classified in slope position classes. TPI is only one of a vast array of morphometric properties based on neighbouring areas that can be useful in topographic and DEM analysis. Used for roughness determination.
+</p>
+    
 This tool has its own module, and will return one outcome, coded 'tpidx'. We get the usage:
 
 ```{r, eval = F}
@@ -253,7 +276,11 @@ rsaga.geoprocessor(
 )
 ```
 
-#### Terrain Roughness Index
+#### Terrain Ruggedness Index
+
+<p class="comment">
+Quantitative measure of topographic heterogeneity.
+</p>
 
 This tool has its own module, and will return one outcome, coded 'tridx'. We get the usage:
 
@@ -305,6 +332,10 @@ rsaga.get.modules('ta_hydrology', env = env) %>% knitr::kable()
 
 #### Melton Ruggedness Index
 
+<p class="comment">
+Simple flow accumulation related index, calculated as difference between maximum and minimum elevation in catchment area divided by square root of catchment area size. The calculation is performed for each grid cell, therefore minimum elevation is same as elevation at cell's position. Due to the discrete character of a single maximum elevation, flow calculation is simply done with Deterministic 8.
+</p>
+
 This tool has its own module, and will return one outcome, coded 'mridx'. We get the usage:
 
 ```{r, eval = F}
@@ -326,9 +357,17 @@ rsaga.geoprocessor(
 
 #### LS Factor
 
+<p class="comment">
+L is the slope length factor, representing the effect of slope length on erosion. It is the ratio of soil loss from the field slope length to that from a 72.6-foot (22.1-meter) length on the same soil type and gradient. Slope length is the distance from the origin of overland flow along its flow path to the location of either concentrated flow or deposition. S is the slope steepness. Represents the effect of slope steepness on erosion. Soil loss increases more rapidly with slope steepness than it does with slope length. L factor and S factor are usually considered together. LS factors = the slope length factor L computes the effect of slope length on erosion and the slope steepness factor S computes the effect of slope steepness on erosion. Values of both L and S equal 1 for the unit plot conditions of 72.6 ft. length and 9 percent steepness. Values of L and S are relative and represent how erodible the particular slope length and steepness is relative to the 72.6 ft long, 9% steep unit plot. Thus some values of L and S are less than 1 and some values are greater than 1. 
+</p>
+
 This particular tool I had to compute using the GUI for SAGA, because `RSAGA` does not let me use the `LS Factor (one step)` library that I need to do it right. In the GUI I only need to give the DEM. It is saved as 'lsfct'.
 
 #### SAGA Wetness Index
+
+<p class="comment">
+The 'SAGA Wetness Index' is, as the name says, similar to the 'Topographic Wetness Index' (TWI), but it is based on a modified catchment area calculation ('Modified Catchment Area'), which does not think of the flow as very thin film. As result it predicts for cells situated in valley floors with a small vertical distance to a channel a more realistic, higher potential soil moisture compared to the standard TWI calculation.
+</p>
 
 This tool has its own module, and will return one outcome, coded 'sagaw'. We get the usage:
 
@@ -372,6 +411,10 @@ rsaga.geoprocessor(
 
 #### Stream Power Index
 
+<p class="comment"> 
+The Stream Power Index (SPI) is a measure of the erosive power of flowing water. SPI is calculated based upon slope and contributing area. SPI approximates locations where gullies might be more likely to form on the landscape.
+</p>
+
 To compute this index, some previous steps are required. The version incompatibility of SAGA 7.5 and RSAGA does not support this computation(?), at least in an intuitive way. So I compute on the SAGA GUI.
 
 The steps I took were:
@@ -386,7 +429,7 @@ The steps I took were:
 
 This particular tool I had to compute using the GUI for SAGA, because `RSAGA` does not let me use the `TWI (one step)` library that I need to do it right. In the GUI I only need to give the DEM. I selected Deterministic 8 for the Flow Distribution. It is coded 'twidx'.
 
-### Lightning module
+### Lighting module
 
 Again I will access the codes for the tools to get the usage:
 
@@ -394,7 +437,27 @@ Again I will access the codes for the tools to get the usage:
 rsaga.get.modules('ta_lighting', env = env) %>% knitr::kable()
 ```
 
-#### Sky View Factor **
+#### Hillshade
+
+From this tool we will get the hillshade 'shade'.
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'ta_lighting', 0, 
+  list(
+    ELEVATION='terrain/input_dsm/dsm.sgrd',
+    SHADE='terrain/out_products/shade.sgrd'
+  ),
+  env = env
+)
+```
+
+
+#### Sky View Factor
+
+<p class="comment">
+Crucial variable widely used to quantify the characteristics of surface structures and estimate surface radiation budget. The SVF expresses the proportion (ratio) of radiation leaving the sky, assumed isotropic, that is able to reach a ground surface tilted at an arbitrary angle. Its value must vary between the minimum of 0, when the sky is not visible at all and to the maximum of 1, when the ground surface is horizontal and the sky entirely visible. 
+</p> 
 
 For this and the next tool, a multiscale parameter is chosen to speed up the computation.
 From this tool we can get two derivatives:
@@ -422,14 +485,18 @@ rsaga.geoprocessor(
 )
 ```
 
-#### Topographic Openness **
+#### Topographic Openness
+
+<p class="comment"> 
+Topographic openness expresses the dominance (positive) or enclosure (negative) of a landscape location. Openness has been related to how wide a landscape can be viewed from any position. It has been proven to be a meaningful input for computer aided geomorphological mapping. Openness is an angular measure of the relation between surface relief and horizontal distance. For angles less than 90", it is equivalent to the internal angle of a cone, its apex at a DEM location, constrained by neighboring elevations within a specified radial distance. Openness incorporates the terrain line-of-sight, or viewshed, concept and is calculated from multiple zenith and nadir angles-here along eight azimuths. Openness has two viewer perspectives. Positive values, expressing openness above the surface, are high for convex forms, whereas negative values describe this attribute below the surface and are high for concave forms. Openness values are mapped by gray-scale tones. The emphasis of terrain convexity and concavity in openness maps facilitates the interpretation of landforms on the Earth's surface and its seafloor, and on the planets, as well as features on any irregular surface-such as those generated by industrial procedures.
+</p>
 
 From this tool we can get two derivatives:
 
 * Positive openness (posop)
 * Negative openness (negop)
 
-```{r}
+```{r, eval = F}
 rsaga.get.usage('ta_lighting', 5, env = env)
 ```
 
@@ -507,7 +574,7 @@ batch_gdal_translate(
 )
 ```
 
-And fast, view the results:
+<!-- And fast, view the results: 
 
 ```{r, eval = F, fig.height=9}
 files = list.files(path = "./terrain/out_products", pattern = "*sa1.*tif", full.names = T)
@@ -521,6 +588,7 @@ invisible(lapply(files_read, function(x) {
   plot(x, key.pos = NULL, reset = F, main = NULL)
 }))
 ```
+-->
 
 # References
 
