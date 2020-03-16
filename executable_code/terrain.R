@@ -412,9 +412,20 @@ rsaga.geoprocessor(
 # ---- Convert results to .tif ----
 
 library(gdalUtils)
-files = list.files(path = "./out_products", pattern = "sa2.*sdat$", full.names = T)
+library(stringr)
+files_short = list.files(path = "./terrain/out_products", pattern = ".sdat$", full.names = F)
+files_as_tif = str_replace(files_short, ".sdat$", ".tif")
+existing_files = list.files(path = "./terrain/derivatives", pattern = ".tif$", full.names = F)
+
+'%!in%' = function(x,y)!('%in%'(x,y))
+
+files_to_translate = files_as_tif[files_as_tif %!in% existing_files] %>%
+  str_replace(".tif", '.sdat')
+
+files_for_translation = file.path(paste0("./terrain/out_products/",files_to_translate))
+
 batch_gdal_translate(
-  infiles = files,
-  outdir = "./out_products",
+  infiles = files_for_translation,
+  outdir = "./terrain/derivatives",
   outsuffix = ".tif"
 )
