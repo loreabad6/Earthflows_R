@@ -19,11 +19,11 @@ ef2 = ef[1:2,]
 zonal_statistics = function(stars_object, sf_object, aggregation_function) {
   var_names = names(stars_object$attr) %>% 
     stringr::str_replace(".tif","") %>% 
-    lapply(function(x) paste0(x, "_", as.character(aggregation_function)))
+    lapply(function(x) paste0(x, "_", noquote(aggregation_function)))
   
   a = aggregate(stars_object, by = sf_object, FUN = aggregation_function) %>% st_as_sf()
   names(a) = c(var_names, 'geometry')
   a
 }
 
-zonal_statistics(t, ef2, sd)
+zonal_statistics(t, ef2, 'mean')
