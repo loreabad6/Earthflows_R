@@ -396,7 +396,7 @@ This particular tool I had to compute using the GUI for SAGA, because `RSAGA` do
 This tool has its own module, and will return one outcome, coded 'lsfct'. We get the usage:
 
 ```{r, eval = F}
-rsaga.get.usage('terrain_analysis','ta_ls_factor', env = env)
+rsaga.get.usage('terrain_analysis','LS Factor (One Step)', env = env)
 ```
 
 And compute:
@@ -404,7 +404,7 @@ And compute:
 ```{r, eval = F}
 rsaga.geoprocessor(
   'terrain_analysis',
-  'ta_ls_factor', 
+  'LS Factor (One Step)', 
   list(
     DEM='terrain/input_dsm/dsm.sgrd',
     LS_FACTOR='terrain/out_products/lsfct.sgrd',
@@ -472,11 +472,11 @@ The Stream Power Index (SPI) is a measure of the erosive power of flowing water.
 To compute this index (spidx), some previous steps are required, i.e. computing the Specific Catchment Area (spcar). To do this, we use the *Flow Accumulation (One Step)* on the `ta_hidrology` module. This will also generate a flow accumulation layer (flow) that will be used later for the Vertical Distance to Channel Network. 
 
 ```{r, eval = F}
-rsaga.get.usage('terrain_analysis','ta_flow_accumulation', env = env)
+rsaga.get.usage('terrain_analysis','Flow Accumulation (One Step)', env = env)
 
 rsaga.geoprocessor(
   'terrain_analysis',
-  'ta_flow_accumulation',
+  'Flow Accumulation (One Step)',
   list(
     DEM='terrain/input_dsm/dsm.sgrd', 
     TCA='terrain/int_products/flow.sgrd',
@@ -505,7 +505,7 @@ rsaga.geoprocessor(
 The tool has its own module as Topographic Wetness Index (One Step). To get the usage:
 
 ```{r, eval = F}
-rsaga.get.usage('terrain_analysis', 'twi', env = env)
+rsaga.get.usage('terrain_analysis', 'Topographic Wetness Index (One Step)', env = env)
 ```
  
 
@@ -514,7 +514,7 @@ To compute we run the code below. I selected Deterministic 8 [0] for the Flow Di
 ```{r, eval = F}
 rsaga.geoprocessor(
   'terrain_analysis',
-  'twi',
+  'Topographic Wetness Index (One Step)',
   list(
     DEM='terrain/input_dsm/dsm.sgrd',
     TWI='terrain/out_products/twidx.sgrd', 

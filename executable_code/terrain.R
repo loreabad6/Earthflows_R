@@ -1,7 +1,7 @@
 ## To be computed on the SAGA GUI: Stream Power Index 
 ## (Needs first Specific Cathcment Area) 
 
-# ---- Prepare data ----
+# Prepare data ----
 
 library(raster)
 dsm = raster('data_rs/2016_HRC_DSM_tiraumea.tif') 
@@ -38,8 +38,9 @@ writeRaster(
   dsm3, 'terrain/input_dsm/dsm_3m.sgrd', format = 'SAGA', overwrite = T, NAflag = 0, prj = T
 )
 
-# ---- ORIGINAL DSM ----
-# ---- Morphometry module ---- 
+
+# ORIGINAL DSM ----
+# Morphometry module ----
 
 rsaga.slope.asp.curv(
   in.dem = "terrain/input_dsm/dsm.sgrd", 
@@ -129,7 +130,7 @@ rsaga.geoprocessor(
   env = env
 )
 
-# ---- Hydrology Module ----
+# Hydrology Module ----
 rsaga.geoprocessor(
   'ta_hydrology', 23, 
   list(
@@ -159,7 +160,7 @@ rsaga.geoprocessor(
 
 rsaga.geoprocessor(
   'terrain_analysis',
-  'ta_ls_factor', 
+  'LS Factor (One Step)', 
   list(
     DEM='terrain/input_dsm/dsm.sgrd',
     LS_FACTOR='terrain/out_products/lsfct.sgrd',
@@ -172,7 +173,7 @@ rsaga.geoprocessor(
 
 rsaga.geoprocessor(
   'terrain_analysis',
-  'twi',
+  'Topographic Wetness Index (One Step)',
   list(
     DEM='terrain/input_dsm/dsm.sgrd',
     TWI='terrain/out_products/twidx.sgrd', 
@@ -183,7 +184,7 @@ rsaga.geoprocessor(
 
 rsaga.geoprocessor(
   'terrain_analysis',
-  'ta_flow_accumulation',
+  'Flow Accumulation (One Step)',
   list(
     DEM='terrain/input_dsm/dsm.sgrd', 
     TCA='terrain/int_products/flow.sgrd',
@@ -204,7 +205,7 @@ rsaga.geoprocessor(
   env = env
 )
 
-# ---- Lighting Module ----
+# Lighting Module ----
 
 rsaga.geoprocessor(
   'ta_lighting', 0, 
@@ -239,7 +240,7 @@ rsaga.geoprocessor(
   env = env
 )
 
-# ---- Channel Module ----
+# Channel Module ----
 
 rsaga.geoprocessor(
   'ta_hydrology', 0, 
@@ -272,8 +273,8 @@ rsaga.geoprocessor(
   env = env
 )
 
-# ---- 3X3 FILTERED DSM ----
-# ---- Morphometry module ---- 
+# 3X3 FILTERED DSM ----
+# Morphometry module ---- 
 
 rsaga.slope.asp.curv(
   in.dem = "terrain/input_dsm/dsm_3x3.sgrd", 
@@ -363,7 +364,7 @@ rsaga.geoprocessor(
   env = env
 )
 
-# ---- Hydrology Module ----
+# Hydrology Module ----
 rsaga.geoprocessor(
   'ta_hydrology', 23, 
   list(
@@ -393,7 +394,7 @@ rsaga.geoprocessor(
 
 rsaga.geoprocessor(
   'terrain_analysis',
-  'ta_ls_factor', 
+  'LS Factor (One Step)', 
   list(
     DEM='terrain/input_dsm/dsm_3x3.sgrd',
     LS_FACTOR='terrain/out_products/lsfct_3x3.sgrd',
@@ -406,7 +407,7 @@ rsaga.geoprocessor(
 
 rsaga.geoprocessor(
   'terrain_analysis',
-  'twi',
+  'Topographic Wetness Index (One Step)',
   list(
     DEM='terrain/input_dsm/dsm_3x3.sgrd',
     TWI='terrain/out_products/twidx_3x3.sgrd', 
@@ -417,7 +418,7 @@ rsaga.geoprocessor(
 
 rsaga.geoprocessor(
   'terrain_analysis',
-  'ta_flow_accumulation',
+  'Flow Accumulation (One Step)',
   list(
     DEM='terrain/input_dsm/dsm_3x3.sgrd', 
     TCA='terrain/int_products/flow_3x3.sgrd',
@@ -438,7 +439,7 @@ rsaga.geoprocessor(
   env = env
 )
 
-# ---- Lighting Module ----
+# Lighting Module ----
 
 rsaga.geoprocessor(
   'ta_lighting', 0, 
@@ -473,7 +474,7 @@ rsaga.geoprocessor(
   env = env
 )
 
-# ---- Channel Module ----
+# Channel Module ----
 
 rsaga.geoprocessor(
   'ta_hydrology', 0, 
@@ -505,7 +506,7 @@ rsaga.geoprocessor(
   ),
   env = env
 )
-# ---- Convert results to .tif ----
+# Convert results to .tif ----
 
 library(gdalUtils)
 library(stringr)
