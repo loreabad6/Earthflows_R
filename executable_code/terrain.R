@@ -26,7 +26,7 @@ rsaga.filter.simple(
 
 dsm = raster('data_rs/2016_HRC_DSM_tiraumea.tif') 
 
-rgbi = stack('data_rs/HRC_2016_RGBI_mosaic_tiraumea.kea')
+rgbi = stack('data_rs/HRC_2016_RGBI_mosaic_tiraumea.tif')
 crs = crs(rgbi)
 crs(dsm) = crs
 
