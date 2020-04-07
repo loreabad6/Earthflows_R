@@ -1,5 +1,5 @@
-## To be computed on the SAGA GUI: LS Factor, Stream Power Index 
-## (Needs first Specific Cathcment Area) and Topographic Wetness Index
+## To be computed on the SAGA GUI: Stream Power Index 
+## (Needs first Specific Cathcment Area) 
 
 # ---- Prepare data ----
 
@@ -52,7 +52,8 @@ rsaga.slope.asp.curv(
   out.clong = "terrain/out_products/clong.sgrd",
   out.cmaxi = "terrain/out_products/cmaxi.sgrd",
   out.cmini = "terrain/out_products/cmini.sgrd", 
-  unit.slope = "degrees", env = env,
+  unit.slope = "degrees", unit.aspect = "degrees",
+  env = env,
   method = "poly2zevenbergen"
 )
 
@@ -156,6 +157,53 @@ rsaga.geoprocessor(
   env = env
 )
 
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'ta_ls_factor', 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd',
+    LS_FACTOR='terrain/out_products/lsfct.sgrd',
+    LS_METHOD=0,
+    PREPROCESSING=2,
+    MINSLOPE=0.0001
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'twi',
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd',
+    TWI='terrain/out_products/twidx.sgrd', 
+    FLOW_METHOD=0
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'ta_flow_accumulation',
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    TCA='terrain/int_products/flow.sgrd',
+    SCA='terrain/int_products/spcar.sgrd',
+    PREPROCESSING=0,
+    FLOW_ROUTING=0
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'ta_hydrology', 21,
+  list(
+    SLOPE='terrain/out_products/slope.sgrd',
+    AREA='terrain/int_products/spcar.sgrd',
+    SPI='terrain/out_products/spidx.sgrd'
+  ),
+  env = env
+)
+
 # ---- Lighting Module ----
 
 rsaga.geoprocessor(
@@ -238,7 +286,8 @@ rsaga.slope.asp.curv(
   out.clong = "terrain/out_products/clong_3x3.sgrd",
   out.cmaxi = "terrain/out_products/cmaxi_3x3.sgrd",
   out.cmini = "terrain/out_products/cmini_3x3.sgrd", 
-  unit.slope = "degrees", env = env,
+  unit.slope = "degrees", unit.aspect = "degrees",
+  env = env,
   method = "poly2zevenbergen"
 )
 
@@ -338,6 +387,53 @@ rsaga.geoprocessor(
   list(
     DEM='terrain/input_dsm/dsm_3x3.sgrd', 
     LENGTH='terrain/out_products/sllgt_3x3.sgrd'
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'ta_ls_factor', 
+  list(
+    DEM='terrain/input_dsm/dsm_3x3.sgrd',
+    LS_FACTOR='terrain/out_products/lsfct_3x3.sgrd',
+    LS_METHOD=0,
+    PREPROCESSING=2,
+    MINSLOPE=0.0001
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'twi',
+  list(
+    DEM='terrain/input_dsm/dsm_3x3.sgrd',
+    TWI='terrain/out_products/twidx_3x3.sgrd', 
+    FLOW_METHOD=0
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'ta_flow_accumulation',
+  list(
+    DEM='terrain/input_dsm/dsm_3x3.sgrd', 
+    TCA='terrain/int_products/flow_3x3.sgrd',
+    SCA='terrain/int_products/spcar_3x3.sgrd',
+    PREPROCESSING=0,
+    FLOW_ROUTING=0
+  ),
+  env = env
+)
+
+rsaga.geoprocessor(
+  'ta_hydrology', 21,
+  list(
+    SLOPE='terrain/out_products/slope_3x3.sgrd',
+    AREA='terrain/int_products/spcar_3x3.sgrd',
+    SPI='terrain/out_products/spidx_3x3.sgrd'
   ),
   env = env
 )

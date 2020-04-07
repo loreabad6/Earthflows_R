@@ -68,7 +68,7 @@ list %>% arrange(desc(Module), Derivative.Name)
 
 The naming convention will include the stated `name` above and for the layers computed based on the 3m filtered window, they will have the suffix `3x3`. 
 
-Some variables unfortunately, have to be computed on the SAGA GUI given that RSAGA does not work with its later version, and several new computation ways have been implemented here that might help with faster and better results. This variables are 'LS-Factor' (lsfct), 'Stream Power Index' (spidx) and 'Topographic Wetness Index' (twidx).
+<!-- Some variables unfortunately, have to be computed on the SAGA GUI given that RSAGA does not work with its later version, and several new computation ways have been implemented here that might help with faster and better results. This variables are 'LS-Factor' (lsfct), 'Stream Power Index' (spidx) and 'Topographic Wetness Index' (twidx). -->
 
 ## Getting started
 
@@ -152,7 +152,8 @@ rsaga.slope.asp.curv(
   out.clong = "terrain/out_products/clong.sgrd",
   out.cmaxi = "terrain/out_products/cmaxi.sgrd",
   out.cmini = "terrain/out_products/cmini.sgrd", 
-  unit.slope = "degrees", env = env,
+  unit.slope = "degrees", unit.aspect = "degrees",
+  env = env,
   method = "poly2zevenbergen"
 )
 ```
@@ -392,6 +393,30 @@ L is the slope length factor, representing the effect of slope length on erosion
 
 This particular tool I had to compute using the GUI for SAGA, because `RSAGA` does not let me use the `LS Factor (one step)` library that I need to do it right. In the GUI I only need to give the DEM. It is saved as 'lsfct'.
 
+This tool has its own module, and will return one outcome, coded 'lsfct'. We get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('terrain_analysis','ta_ls_factor', env = env)
+```
+
+And compute:
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'ta_ls_factor', 
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd',
+    LS_FACTOR='terrain/out_products/lsfct.sgrd',
+    LS_METHOD=0,
+    PREPROCESSING=2,
+    MINSLOPE=0.0001
+  ),
+  env = env
+)
+```
+
+
 #### SAGA Wetness Index
 
 <p class="comment">
@@ -444,19 +469,61 @@ rsaga.geoprocessor(
 The Stream Power Index (SPI) is a measure of the erosive power of flowing water. SPI is calculated based upon slope and contributing area. SPI approximates locations where gullies might be more likely to form on the landscape.
 </p>
 
-To compute this index, some previous steps are required. The version incompatibility of SAGA 7.5 and RSAGA does not support this computation(?), at least in an intuitive way. So I compute on the SAGA GUI.
+To compute this index (spidx), some previous steps are required, i.e. computing the Specific Catchment Area (spcar). To do this, we use the *Flow Accumulation (One Step)* on the `ta_hidrology` module. This will also generate a flow accumulation layer (flow) that will be used later for the Vertical Distance to Channel Network. 
 
-The steps I took were:
+```{r, eval = F}
+rsaga.get.usage('terrain_analysis','ta_flow_accumulation', env = env)
 
-1. Calculate *Flow Accumulation (One Step)* on the `ta_hidrology` module. The only input is the DEM. The intermediate output needed is the *Specific Catchment Area*. I saved this on the `int_products` directory as 'spcar'. Specific parameters are:
-    + Preprocessing: Fill Sinks (Wang & Liu)
-    + Flow Routing: Deterministic 8
-    
-2. Compute *Stream Power Index* on the `ta_hidrology` module. Inputs are the Slope and Specific Catchment Area. The result is saved to `terrain/out_products` as 'spidx'.
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'ta_flow_accumulation',
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd', 
+    TCA='terrain/int_products/flow.sgrd',
+    SCA='terrain/int_products/spcar.sgrd',
+    PREPROCESSING=0,
+    FLOW_ROUTING=0
+  ),
+  env = env
+)
 
-#### Terrain Wetness Index
+rsaga.get.usage('ta_hydrology', 21, env = env)
 
-This particular tool I had to compute using the GUI for SAGA, because `RSAGA` does not let me use the `TWI (one step)` library that I need to do it right. In the GUI I only need to give the DEM. I selected Deterministic 8 for the Flow Distribution. It is coded 'twidx'.
+rsaga.geoprocessor(
+  'ta_hydrology', 21,
+  list(
+    SLOPE='terrain/out_products/slope.sgrd',
+    AREA='terrain/int_products/spcar.sgrd',
+    SPI='terrain/out_products/spidx.sgrd'
+  ),
+  env = env
+)
+```
+
+#### Topographic Wetness Index
+
+The tool has its own module as Topographic Wetness Index (One Step). To get the usage:
+
+```{r, eval = F}
+rsaga.get.usage('terrain_analysis', 'twi', env = env)
+```
+ 
+
+To compute we run the code below. I selected Deterministic 8 [0] for the Flow Distribution. It is coded 'twidx'.
+
+```{r, eval = F}
+rsaga.geoprocessor(
+  'terrain_analysis',
+  'twi',
+  list(
+    DEM='terrain/input_dsm/dsm.sgrd',
+    TWI='terrain/out_products/twidx.sgrd', 
+    FLOW_METHOD=0
+  ),
+  env = env
+)
+```
+
 
 ### Lighting module
 
@@ -549,27 +616,16 @@ rsaga.geoprocessor(
 
 #### Vertical Distance to Channel Network
 
-For this some previous steps are needed, see the complete code:
+For this some previous steps are needed, see the complete code. The flow accumulation was already computed in the Stream Power Index step. 
 
 ```{r, eval = F}
-rsaga.get.usage('ta_hydrology', 0, env = env)
-rsaga.geoprocessor(
-  'ta_hydrology', 0, 
-  list(
-    ELEVATION='terrain/input_dsm/dsm.sgrd', 
-    FLOW='int_products/flowsa1.sgrd', 
-    METHOD=0
-  ),
-  env = env
-)
-
 rsaga.get.usage('ta_channels', 0, env = env)
 rsaga.geoprocessor(
   'ta_channels', 0, 
   list(
     ELEVATION='terrain/input_dsm/dsm.sgrd', 
-    CHNLNTWRK='int_products/chnet.sgrd', 
-    INIT_GRID='int_products/flowsa1.sgrd', 
+    CHNLNTWRK='terrain/int_products/chnet.sgrd', 
+    INIT_GRID='terrain/int_products/flow.sgrd', 
     INIT_VALUE=1000000
   ),
   env = env
@@ -580,7 +636,7 @@ rsaga.geoprocessor(
   'ta_channels', 3, 
   list(
     ELEVATION='terrain/input_dsm/dsm.sgrd',
-    CHANNELS='int_products/chnet.sgrd',
+    CHANNELS='terrain/int_products/chnet.sgrd',
     DISTANCE='terrain/out_products/vdcnw.sgrd'
   ),
   env = env
