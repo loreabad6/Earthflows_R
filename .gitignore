@@ -7,6 +7,7 @@
 *.mgrd
 *.tif
 *.prj
+*.ovr
 software/
 temp/
 results/

@@ -6,7 +6,7 @@ Curvature (General Curvature);cgene;ta_morphometry;0
 Downslope distance gradient;ddgrd;ta_morphometry;9
 Hillshade;shade;ta_lighting;0
 Longitudinal Curvature;clong;ta_morphometry;0
-LS Factor;lsfct;ta_hydrology;22
+LS Factor;lsfct;ta_hydrology;"""LS Factor (One Step)"""
 Mass Balance Index;mbidx;ta_morphometry;10
 Maximum Curvature;cmaxi;ta_morphometry;0
 Melton Ruggedness Index;mridx;ta_hydrology;23
@@ -25,7 +25,7 @@ Slope length;sllgt;ta_hydrology;7
 Standardized Height;sthgt;ta_morphometry;14
 Stream Power Index;spidx;ta_hydrology;21
 Terrain Ruggedness Index;tridx;ta_morphometry;16
-Topographic Wetness Index;twidx;ta_hydrology;20
+Topographic Wetness Index;twidx;ta_hydrology;"""Topographic Wetness Index (One Step)"""
 Texture;textu;ta_morphometry;20
 Topographic Position Index;tpidx;ta_morphometry;18
 Valley Depth;vldpt;ta_morphometry;14
