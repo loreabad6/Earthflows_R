@@ -93,13 +93,13 @@ env = rsaga.env(
 
 ## Generating Terrain Derivatives
 
-Initially, we will do a simple filter of the original DSM, to then be able to compute derivatives on all the values. 
+Initially, we will do a simple filter of the original DSM with a 3x3 window size, to then be able to compute derivatives on all the values. 
 
 ```{r, eval = F}
 rsaga.filter.simple(
   in.grid = 'terrain/input_dsm/dsm.sgrd', 
   out.grid = 'terrain/input_dsm/dsm_3x3.sgrd', 
-  method = 'smooth', radius = 3, mode = 'square', 
+  method = 'smooth', radius = 1, mode = 'square', 
   env = env
 )
 ```
@@ -647,12 +647,15 @@ rsaga.geoprocessor(
 
 ### Final steps
 
+#### Convert to TIFF
+
 Useful function to convert to `.tif` extension. 
 
 ```{r, eval = F}
 library(gdalUtils)
 library(stringr)
-files_short = list.files(path = "./terrain/out_products", pattern = ".sdat$", full.names = F)
+dir_path_to_translate = "./terrain/out_products/"
+files_short = list.files(path = dir_path_to_translate, pattern = ".sdat$", full.names = F)
 files_as_tif = str_replace(files_short, ".sdat$", ".tif")
 existing_files = list.files(path = "./terrain/derivatives", pattern = ".tif$", full.names = F)
 
@@ -661,7 +664,7 @@ existing_files = list.files(path = "./terrain/derivatives", pattern = ".tif$", f
 files_to_translate = files_as_tif[files_as_tif %!in% existing_files] %>%
   str_replace(".tif", '.sdat')
 
-files_for_translation = file.path(paste0("./terrain/out_products/",files_to_translate))
+files_for_translation = file.path(paste0(dir_path_to_translate, files_to_translate))
 
 batch_gdal_translate(
   infiles = files_for_translation,
@@ -686,7 +689,9 @@ invisible(lapply(files_read, function(x) {
 ```
 -->
 
-Finally, there is a need to have every input for eCognition on the same CRS. For some reason, eCognition does not recognize this when done with GDAL. Hence, a Model Builder in ArcGIS was prepared to quickly transform everything to `EPSG:2193`, which is recognized and avoids conflicts. 
+#### Define projection
+
+Finally, there is a need to have every input for eCognition on the same CRS. For some reason, eCognition does not recognize this when done with GDAL. Hence, a Model Builder in ArcGIS was prepared to quickly transform everything to `EPSG:2193`, which is recognized and avoids conflicts. To run this, refer to the `projection_tools.tbx` on the 'toolbox' folder of the project. 
 
 # References
 

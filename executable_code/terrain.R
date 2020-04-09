@@ -1,6 +1,3 @@
-## To be computed on the SAGA GUI: Stream Power Index 
-## (Needs first Specific Cathcment Area) 
-
 # Prepare data ----
 
 library(raster)
@@ -20,7 +17,7 @@ env = rsaga.env(
 rsaga.filter.simple(
   in.grid = 'terrain/input_dsm/dsm.sgrd', 
   out.grid = 'terrain/input_dsm/dsm_3x3.sgrd', 
-  method = 'smooth', radius = 3, mode = 'square', 
+  method = 'smooth', radius = 1, mode = 'square', 
   env = env
 )
 
@@ -241,16 +238,6 @@ rsaga.geoprocessor(
 )
 
 # Channel Module ----
-
-rsaga.geoprocessor(
-  'ta_hydrology', 0, 
-  list(
-    ELEVATION='terrain/input_dsm/dsm.sgrd', 
-    FLOW='terrain/int_products/flow.sgrd', 
-    METHOD=0
-  ),
-  env = env
-)
 
 rsaga.geoprocessor(
   'ta_channels', 0, 
@@ -477,16 +464,6 @@ rsaga.geoprocessor(
 # Channel Module ----
 
 rsaga.geoprocessor(
-  'ta_hydrology', 0, 
-  list(
-    ELEVATION='terrain/input_dsm/dsm_3x3.sgrd', 
-    FLOW='terrain/int_products/flow_3x3.sgrd', 
-    METHOD=0
-  ),
-  env = env
-)
-
-rsaga.geoprocessor(
   'ta_channels', 0, 
   list(
     ELEVATION='terrain/input_dsm/dsm_3x3.sgrd', 
@@ -510,7 +487,8 @@ rsaga.geoprocessor(
 
 library(gdalUtils)
 library(stringr)
-files_short = list.files(path = "./terrain/out_products", pattern = ".sdat$", full.names = F)
+dir_path_to_translate = "./terrain/out_products/"
+files_short = list.files(path = dir_path_to_translate, pattern = ".sdat$", full.names = F)
 files_as_tif = str_replace(files_short, ".sdat$", ".tif")
 existing_files = list.files(path = "./terrain/derivatives", pattern = ".tif$", full.names = F)
 
@@ -519,7 +497,7 @@ existing_files = list.files(path = "./terrain/derivatives", pattern = ".tif$", f
 files_to_translate = files_as_tif[files_as_tif %!in% existing_files] %>%
   str_replace(".tif", '.sdat')
 
-files_for_translation = file.path(paste0("./terrain/out_products/",files_to_translate))
+files_for_translation = file.path(paste0(dir_path_to_translate, files_to_translate))
 
 batch_gdal_translate(
   infiles = files_for_translation,

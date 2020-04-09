@@ -8,6 +8,7 @@
 *.tif
 *.prj
 *.ovr
+*.xml
 software/
 temp/
 results/
