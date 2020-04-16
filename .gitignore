@@ -9,6 +9,7 @@
 *.prj
 *.ovr
 *.xml
+*.zip
 software/
 temp/
 results/
