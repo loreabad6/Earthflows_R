@@ -12,6 +12,7 @@
 *.zip
 software/
 temp/
+statistics/earthflow_ref_stats*
 results/
 for_zgis262/
 junk

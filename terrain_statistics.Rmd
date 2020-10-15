@@ -1,0 +1,102 @@
+---
+title: "Terrain Statistics for Reference Earthflows"
+author: "Lorena Abad"
+date: "`r format(Sys.time(), '%d.%m.%Y')`"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '4'
+    toc_float: yes
+    code_folding: hide
+---
+
+<style>
+p.comment {
+background-color: #DBDBDB;
+padding: 10px;
+border: 1px solid black;
+margin-left: 25px;
+border-radius: 5px;
+font-style: italic;
+}
+</style>
+
+```{r, echo = F}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+
+knitr::read_chunk('executable_code/statistics.R')
+```
+
+
+# Context
+
+As a continuation of the [terrain derivative generation](https://loreabad6.github.io/Earthflows_R/terrain_derivatives.html) of the Tiraumea catchment in New Zealand to identify earthflows, we calculate several statistics computed for manually delineated earthflows, taken as a reference for analysis. 
+
+# Manual delineation of earthflows
+
+Based on RGBI mosaics for the Tiraumea catchment for 2016, 39 earthflows were manually delineated for our area of interest. They are fairly distributed within the study area. 
+
+```{r libs, echo = F}
+```
+
+```{r, include = F}
+# Call mapping library and set options
+library(mapview)
+mapviewOptions(basemaps = c("CartoDB.DarkMatter", "Esri.WorldImagery", 'OpenStreetMap'), console = F, verbose = F, leafletWidth = 800)
+```
+
+```{r, eval = T}
+<<refEarthflows>>
+ef
+tiraumea = st_read('study_area/Tiraumea.shp', quiet = T) 
+mapview(tiraumea, color = 'red', alpha.regions = 0) + mapview(ef, zcol = 'Area_m2')
+```
+
+Several variables were already calculated within eCognition, and are shown on the data frame above. Here is a small description of this variables: 
+
+- Area_m2: Area in square meters of the object
+- Compactness: Product of the width and the length over pixels numbers
+- Density: Distribution, in space, of the pixels of an object and is calculated by the Area object
+- DSMmaxmin: Range between min and max
+- elev_by_le: Elevation by length, i.e. DSM_minmax / length 
+- Length_m: length in meters of the object
+- LengthWidt: ratio length / width
+
+As a final step, the delineated earthflows are filtered to the study area of interested, and reprojected. 
+```{r refEarthflowsAOI, eval = F}
+```
+
+# Terrain derivatives as proxies
+
+The terrain derivatives were calculated for 32 variables for the original DSM data (1 m spatial resolution), and also for a filtered DSM on a 3x3 moving window. One variable was calculated on a resamples 3m resolution DSM. Each layer is around 5 GB large, so they are called into the R environment as proxies. 
+
+```{r derivativesProxy, eval = F}
+```
+
+# 
+
+```{r, eval = F}
+
+p = stats_long %>% 
+  filter(statistic == 'mean') %>% 
+  # Histogram of the values
+  ggplot(aes(x = value, y = datatype)) +
+  geom_boxplot() +
+  # geom_histogram(bins = 10) +
+  facet_wrap(~derivative, scales = 'free', ncol = 4)
+  # Scatterplot of two values
+  # Map of the values
+  # ggplot() +
+  # geom_sf(aes(fill = value), color = NA) +
+  # scale_fill_viridis_c() +
+  # theme_void() 
+
+p %>% 
+  plotly::ggplotly()
+```
+
