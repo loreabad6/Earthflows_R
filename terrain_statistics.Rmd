@@ -2,6 +2,7 @@
 title: "Terrain Statistics for Reference Earthflows"
 author: "Lorena Abad"
 date: "`r format(Sys.time(), '%d.%m.%Y')`"
+runtime: shiny
 output:
   html_document:
     df_print: paged
@@ -47,14 +48,41 @@ Based on RGBI mosaics for the Tiraumea catchment for 2016, 39 earthflows were ma
 ```{r, include = F}
 # Call mapping library and set options
 library(mapview)
-mapviewOptions(basemaps = c("CartoDB.DarkMatter", "Esri.WorldImagery", 'OpenStreetMap'), console = F, verbose = F, leafletWidth = 800)
+mapviewOptions(basemaps = c("CartoDB", "Esri.WorldImagery", 'OpenStreetMap'), console = F, verbose = F, leafletWidth = 800)
 ```
 
 ```{r, eval = T}
 <<refEarthflows>>
-ef
 tiraumea = st_read('study_area/Tiraumea.shp', quiet = T) 
-mapview(tiraumea, color = 'red', alpha.regions = 0) + mapview(ef, zcol = 'Area_m2')
+```
+
+```{r}
+library(DT)
+library(leaflet)
+library(leaflet)
+shinyApp(
+  ui = fluidPage(
+    leafletOutput('mapEf'),
+    br(),
+    dataTableOutput('tableEf')
+  ),
+  server = function(input, output) {
+    output$tableEf = renderDataTable({
+      eftable = ef %>%  st_drop_geometry() %>% select(-ID) 
+      datatable(eftable, options = list(pageLength = 5, lengthMenu = c(5, 10, 15, 25, 39))) %>% 
+      formatRound(digits = 3, columns = 2:7)
+    })
+    
+    output$mapEf = renderLeaflet({
+      
+      m = mapview(tiraumea, color = 'red', alpha.regions = 0) + 
+          mapview(ef, zcol = 'Area_m2')
+      
+      m@map
+    })
+  }, 
+  options = list(height = 800)
+)
 ```
 
 Several variables were already calculated within eCognition, and are shown on the data frame above. Here is a small description of this variables: 
@@ -67,36 +95,122 @@ Several variables were already calculated within eCognition, and are shown on th
 - Length_m: length in meters of the object
 - LengthWidt: ratio length / width
 
+Some summary statistics for these variables are below: 
+
+```{r, eval = T}
+ef %>% 
+  st_drop_geometry() %>% 
+  pivot_longer(-ID) %>% 
+  group_by(name) %>% 
+        summarize(min = min(value, na.rm = T), max = max(value, na.rm = T), 
+                  mean = mean(value, na.rm = T), q1= quantile(value, probs = 0.25, na.rm = T), 
+                  median = median(value, na.rm = T), q3= quantile(value, probs = 0.75, na.rm = T),
+                  sd = sd(value, na.rm = T)) %>% 
+        mutate_if(is.numeric, round, 2) %>% 
+  knitr::kable()
+```
+
 As a final step, the delineated earthflows are filtered to the study area of interested, and reprojected. 
+
 ```{r refEarthflowsAOI, eval = F}
 ```
 
-# Terrain derivatives as proxies
+# Statistics computation procedure
+## Terrain derivatives as proxies
 
-The terrain derivatives were calculated for 32 variables for the original DSM data (1 m spatial resolution), and also for a filtered DSM on a 3x3 moving window. One variable was calculated on a resamples 3m resolution DSM. Each layer is around 5 GB large, so they are called into the R environment as proxies. 
+The terrain derivatives were calculated for 32 variables for the **original DSM** data (1 m spatial resolution), and also for a filtered DSM on a **3x3 moving window (MW)**. One variable was calculated on a **resampled 3m** resolution DSM. Each layer is around 5 GB large, so they are called into the R environment as proxies. 
 
 ```{r derivativesProxy, eval = F}
 ```
 
-# 
+## Statistics computation
 
-```{r, eval = F}
+Below is the code of the *function* used to calculate statistics over the different terrain derivatives layers for the 39 manually delineated earthflows: 
 
-p = stats_long %>% 
-  filter(statistic == 'mean') %>% 
-  # Histogram of the values
-  ggplot(aes(x = value, y = datatype)) +
-  geom_boxplot() +
-  # geom_histogram(bins = 10) +
-  facet_wrap(~derivative, scales = 'free', ncol = 4)
-  # Scatterplot of two values
-  # Map of the values
-  # ggplot() +
-  # geom_sf(aes(fill = value), color = NA) +
-  # scale_fill_viridis_c() +
-  # theme_void() 
+```{r zonalStatsFun, eval = F}
+```
 
-p %>% 
-  plotly::ggplotly()
+This function is then applied to the `stars` objects created during the previous step. 
+
+```{r zonalStatsCalc, eval = F}
+```
+
+The result is in wide format, which creates difficulties when saving the results to a shapefile. Therefore, the last step is to convert it into long format. In doing so, the units for each derivative are also added.
+```{r dataWrangling, eval = F}
+```
+
+
+And finally, they are saved in different data formats: 
+```{r savingData, eval = F}
+```
+
+
+# Explore statistics
+
+Below is an interactive boxplot where the terrain derivative and the type of statistic can be selected. A table summarizing descriptive statistics for said values is also within the plot area, and changes interactively. The data is grouped by those statistics computed for the derivatives created from the **original DSM (1m)**, and those for the **filtered DSM** (on a 3x3 moving window, MW). The only exception is the *Topographic Position Index*, which is computed for a **resampled DSM (3m)**. The x axis shows the corresponding values and the title of the axis includes the 1) statistic type, 2) the code name of the terrain derivative, and 3) the unit within parenthesis. An empty unit means *nondimensional* values. 
+
+```{r, eval = T, fig.height = 20, fig.width = 25}
+load("statistics/earthflow_stats_long.Rda")
+
+require(ggplot2)
+require(ggpmisc)
+
+derivative_codes = read.csv('code_list.csv', sep = ';') %>%
+  arrange(Derivative_Name) %>% 
+  pull(File_Coding_Name, Derivative_Name)
+
+shinyApp(
+  ui = fluidPage(
+    inputPanel(
+      selectInput("derivative_choose", label = "Select terrain derivative",
+               choices = derivative_codes, multiple=FALSE, selected = "slope", width = '200%'),
+      selectInput("stats_choose", label = "Select statistic type",
+                 choices = c('max', 'mean', 'min', 
+                             'first quartile' = 'q1', 'median', 'third quartile' = 'q3', 
+                             'sd', 'skewness'), multiple = FALSE, selected = "mean")
+    ),
+    
+    plotOutput("statsPlot")
+  ),
+  server = function(input, output) {
+    output$statsPlot <- renderPlot({
+      
+      plotData = stats_long %>% 
+        filter(
+          derivative == input$derivative_choose,
+          statistic == input$stats_choose 
+        ) %>% 
+        mutate(datatype = factor(datatype, 
+                                 levels = c('original','3x3','3m'), 
+                                 labels = c("Original DSM (1m)", 
+                                            'Filtered DSM (3x3 MW)', 
+                                            'Resampled DSM (3m)'),
+                                 ordered = T))
+      summ = plotData %>% 
+        group_by(datatype) %>% 
+        summarize(min = min(value, na.rm = T), max = max(value, na.rm = T), 
+                  mean = mean(value, na.rm = T), q1= quantile(value, probs = 0.25, na.rm = T), 
+                  median = median(value, na.rm = T), q3= quantile(value, probs = 0.75, na.rm = T),
+                  sd = sd(value, na.rm = T)) %>% 
+        st_drop_geometry() %>% 
+        mutate_if(is.numeric, round, 2)
+      
+      ggplot(data=plotData, aes(x = value, y = datatype, fill = datatype)) + 
+        geom_boxplot() +
+        labs(y = '', x = paste0(
+          input$stats_choose, ' ', 
+          input$derivative_choose, ' (', 
+          plotData$units, ')')
+        ) +
+        scale_y_discrete(limits = rev, expand = c(0.5, 0.5)) +
+        scale_fill_brewer('Base DSM', palette = 'Dark2') +
+        stat_summary() +
+        geom_table_npc(data = summ, label = list(summ), size = 4, 
+                       npcx = 1, npcy = 1, hjust = 1, vjust = 1) +
+        theme(legend.position = 'top', text = element_text(size = 15))
+    })
+  },
+  options = list(height = 600)
+)
 ```
 
