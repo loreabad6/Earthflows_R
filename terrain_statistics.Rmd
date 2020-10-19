@@ -59,7 +59,7 @@ tiraumea = st_read('study_area/Tiraumea.shp', quiet = T)
 ```{r}
 library(DT)
 library(leaflet)
-library(leaflet)
+library(shiny)
 shinyApp(
   ui = fluidPage(
     leafletOutput('mapEf'),
