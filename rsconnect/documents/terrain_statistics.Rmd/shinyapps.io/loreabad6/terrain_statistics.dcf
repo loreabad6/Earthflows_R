@@ -5,6 +5,6 @@ account: loreabad6
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3049762
-bundleId: 3759010
+bundleId: 3761939
 url: https://loreabad6.shinyapps.io/terrain_statistics/
-when: 1603124701.84096
+when: 1603189760.78242

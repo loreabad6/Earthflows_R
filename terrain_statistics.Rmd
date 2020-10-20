@@ -2,14 +2,23 @@
 title: "Terrain Statistics for Reference Earthflows"
 author: "Lorena Abad"
 date: "`r format(Sys.time(), '%d.%m.%Y')`"
-runtime: shiny
 output:
   html_document:
+    code_folding: hide
     df_print: paged
     toc: yes
     toc_depth: '4'
     toc_float: yes
-    code_folding: hide
+runtime: shiny
+resource_files:
+- study_area/Tiraumea.sbx
+- study_area/Tiraumea.cpg
+- study_area/Tiraumea.dbf
+- study_area/Tiraumea.sbn
+- study_area/Tiraumea.shx
+- data_reference/earthflow_statistics.shx
+- data_reference/earthflow_statistics.dbf
+- data_reference/earthflow_statistics.prj
 ---
 
 <style>
@@ -53,10 +62,22 @@ mapviewOptions(basemaps = c("CartoDB", "Esri.WorldImagery", 'OpenStreetMap'), co
 
 ```{r, eval = T}
 <<refEarthflows>>
+ef = ef %>% st_transform(2193)
 tiraumea = st_read('study_area/Tiraumea.shp', quiet = T) 
+st_crs(tiraumea) = 2193
+st_crs(ef) = 2193
+mapview(tiraumea, color = 'red', alpha.regions = 0) + 
+          mapview(ef, zcol = 'Area_m2')
 ```
 
 ```{r}
+library(DT)
+eftable = ef %>%  st_drop_geometry() %>% select(-ID) 
+      datatable(eftable, options = list(pageLength = 5, lengthMenu = c(5, 10, 15, 25, 39))) %>% 
+      formatRound(digits = 3, columns = 2:7)
+```
+
+```{r, include = F, eval = F}
 library(DT)
 library(leaflet)
 library(shiny)
@@ -102,11 +123,12 @@ ef %>%
   st_drop_geometry() %>% 
   pivot_longer(-ID) %>% 
   group_by(name) %>% 
-        summarize(min = min(value, na.rm = T), max = max(value, na.rm = T), 
-                  mean = mean(value, na.rm = T), q1= quantile(value, probs = 0.25, na.rm = T), 
-                  median = median(value, na.rm = T), q3= quantile(value, probs = 0.75, na.rm = T),
-                  sd = sd(value, na.rm = T)) %>% 
-        mutate_if(is.numeric, round, 2) %>% 
+  summarize(min = min(value, na.rm = T), max = max(value, na.rm = T), 
+            mean = mean(value, na.rm = T), q1= quantile(value, probs = 0.25, na.rm = T), 
+            median = median(value, na.rm = T), q3= quantile(value, probs = 0.75, na.rm = T),
+            sd = sd(value, na.rm = T)) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  ungroup() %>% 
   knitr::kable()
 ```
 
