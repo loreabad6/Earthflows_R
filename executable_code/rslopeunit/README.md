@@ -28,7 +28,18 @@ docker run -it -v  local_path:/home_destination_path --name container_name lorea
 # r.slopeunits --help
 ```
 
-3. Work in progress...
+3. Run the module for our study case - Work in progress...
+
+So far, if we mount a volume in the container, we should in theory be able to run the slope units module. I just need to give myself a crash course on GRASS from the CLI, see options [here](https://grass.osgeo.org/grass78/manuals/grass7.html) and [here](https://ncsu-geoforall-lab.github.io/geospatial-modeling-course/grass/data_acquisition.html).
+
+Then getting an idea of the initial parameters to test with goes hand in hand with analyzing the papers below.  
+
+Ideally, I would write a bash (.sh) script in this section with my testing commands in the form:
+
+```
+r.slopeunits demmap=[dem] slumap=[output_SU_map] thresh=[t, square meters] circularvariance=[c] areamin=[a, square meters] reductionfactor=[r, r>2] maxiteration=[max number of iterations]
+```
+And then let it execute and save the results. 
 
 ### References
 
