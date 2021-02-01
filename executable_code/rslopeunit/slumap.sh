@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # register GeoTIFF file to be used in current mapset:
-r.external input=home/Earthflows_R/data_rs/dsm_filled_sa1.tif output=dsm_sa1
+r.external input=/home/Earthflows_R/data_rs/dsm_filled_sa1.tif output=dsm_sa1
 
 # define output directory for files resulting from GRASS calculation:
-v.external.out directory=Earthflows_R/executable_code/rslopeunit/results/ format=GPKG extension=gpkg
+v.external.out output=/home/Earthflows_R/executable_code/rslopeunit/results/
 
 # run r.slopeuntis module
 # demmap = DSM map for subset area 1
@@ -19,4 +19,3 @@ v.external.out directory=Earthflows_R/executable_code/rslopeunit/results/ format
 # reductionfactor = 5, values larger than 5 are recommended
 # maxiteration = 10 -- arbitrary and from literature 
 r.slopeunits demmap=dsm_sa1 slumap=slumap_sa1 thresh=8e5 circularvariance=0.05 areamin=100000 reductionfactor=5 maxiteration=10
-

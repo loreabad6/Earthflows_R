@@ -40,8 +40,47 @@ In my case, the container name is `rslopeunits`.
 
 Then we will create a temporal location based on our georeferenced TIFF and we will execute a bash script that will export the results to the mounted volume, see [more details here](https://grass.osgeo.org/grass78/manuals/grass7.html#batch-jobs-with-the-exec-interface).
 
+
 ```
-grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif --exec home/Earthflows_R/executable_code/rslopeunit/slumap.sh
+# Give shell file execution rights
+chmod ugo+x /home/Earthflows_R/executable_code/rslopeunit/slumap.sh
+# run shell file
+grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif --exec /home/Earthflows_R/executable_code/rslopeunit/slumap.sh
+```
+
+**NOTE!** For some reason, the bash script won't run properly. So until finding a solution to that, I ran the code inside `grass78`. So basically:
+
+```
+## on the command line
+grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif
+## inside grass
+r.external input=/home/Earthflows_R/data_rs/dsm_filled_sa1.tif output=dsm_sa1
+v.external.out output=/home/Earthflows_R/executable_code/rslopeunit/results/
+r.slopeunits demmap=dsm_sa1 slumap=slumap_sa1 thresh=8e5 circularvariance=0.05 areamin=100000 reductionfactor=5 maxiteration=10
+```
+
+**ERROR** Apparentely related to the r.slopeunits script? Here is the log:
+
+```
+Initial threshold (cells) is : 800000
+Initial minimum area (cells) is : 100000
+WARNING: MASK already exists and will be overwritten
+Traceback (most recent call last):
+  File "/usr/local/grass78/scripts/r.slopeunits", line 326, in <module>
+    main()
+  File "/usr/local/grass78/scripts/r.slopeunits", line 226, in main
+    if kv.has_key("n"):
+  File "/usr/local/grass78/etc/python/grass/script/utils.py", line 156, in __getattr__
+    return self[key]
+KeyError: 'has_key'
+Removing temporary files
+WARNING: No data base element files found
+WARNING: No data base element files found
+WARNING: No data base element files found
+WARNING: No data base element files found
+WARNING: No data base element files found
+WARNING: No data base element files found
+WARNING: No data base element files found
 ```
 
 The [slumap.sh](slumap.sh) file containes code to run the slope units module in the form:
