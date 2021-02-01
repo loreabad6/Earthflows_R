@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # register GeoTIFF file to be used in current mapset:
 r.external input=home/Earthflows_R/data_rs/dsm_filled_sa1.tif output=dsm_sa1
 
