@@ -41,7 +41,7 @@ In my case, the container name is `rslopeunits`.
 Then we will create a temporal location based on our georeferenced TIFF and we will execute a bash script that will export the results to the mounted volume, see [more details here](https://grass.osgeo.org/grass78/manuals/grass7.html#batch-jobs-with-the-exec-interface).
 
 ```
-grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif --exec slumap.sh
+grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif --exec home/Earthflows_R/executable_code/rslopeunit/slumap.sh
 ```
 
 The [slumap.sh](slumap.sh) file containes code to run the slope units module in the form:
