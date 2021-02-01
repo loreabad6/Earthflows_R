@@ -9,12 +9,12 @@ How-to guide:
   
 1. Inside the Command Prompt, run the docker image inside a new container: 
 ```
-docker run -it --name container_name loreabad6/rslopeunits:v1.0
+docker run -it --name [container_name] loreabad6/rslopeunits:v1.0
 ```
 
   a. Alternatively, mount a volume (i.e. a local directory containing a DSM model) ar runtime to the container:
 ```
-docker run -it -v  local_path:/home_destination_path --name container_name loreabad6/rslopeunits:v1.0
+docker run -it -v [local_path:/home_destination_path] --name [container_name] loreabad6/rslopeunits:v1.0
 ```
 
 2. Double check `r.slopeunits` is accessible. Run:
@@ -30,16 +30,25 @@ docker run -it -v  local_path:/home_destination_path --name container_name lorea
 
 3. Run the module for our study case - Work in progress...
 
-So far, if we mount a volume in the container, we should in theory be able to run the slope units module. I just need to give myself a crash course on GRASS from the CLI, see options [here](https://grass.osgeo.org/grass78/manuals/grass7.html) and [here](https://ncsu-geoforall-lab.github.io/geospatial-modeling-course/grass/data_acquisition.html).
+If you already have a setup container, with a mounted volume and some work done, then run this in your command line:
 
-Then getting an idea of the initial parameters to test with goes hand in hand with analyzing the papers below.  
+```
+docker start [container_name]
+docker exec -it [container_name] bash
+```
+In my case, the container name is `rslopeunits`.
 
-Ideally, I would write a bash (.sh) script in this section with my testing commands in the form:
+Then we will create a temporal location based on our georeferenced TIFF and we will execute a bash script that will export the results to the mounted volume, see [more details here](https://grass.osgeo.org/grass78/manuals/grass7.html#batch-jobs-with-the-exec-interface).
+
+```
+grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif --exec slumap.sh
+```
+
+The [slumap.sh](slumap.sh) file containes code to run the slope units module in the form:
 
 ```
 r.slopeunits demmap=[dem] slumap=[output_SU_map] thresh=[t, square meters] circularvariance=[c] areamin=[a, square meters] reductionfactor=[r, r>2] maxiteration=[max number of iterations]
 ```
-And then let it execute and save the results. 
 
 ### References
 
