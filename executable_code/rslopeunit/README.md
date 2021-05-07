@@ -1,34 +1,27 @@
 
-## Testing `r.slopeunits`
+# Testing `r.slopeunits`
 
 [Slope units delineation](http://geomorphology.irpi.cnr.it/tools/slope-units) has been developed and described by Alvioli et al. ([2016](https://gmd.copernicus.org/articles/9/3975/2016/), [2020](https://www.sciencedirect.com/science/article/pii/S0169555X20300969)) as a useful tool to subdivide terrain units and use as an input layer for landslide susceptibility analyses.
 
-The usage of the software requires GRASS GIS, and it is designed to run ideally on a Linux environment. To bypass any difficulties regarding operating systems, I created a Docker Image of an Ubuntu interface with GRASS GIS 7.8, Python 3, and r.slopeunits setup ready for usage. 
+Unfortunately, I run by some trouble when running the code posted on their website. But, recently during the #vEGU21 the authors of the course provided a [short course ](https://meetingorganizer.copernicus.org/EGU21/session/38902), which provided a virtual machine with updated code and slides to learn about the method. For now, I do not count with the authorization to share these materials through this repository, but will hope to contact the authors!
 
-How-to guide: 
+The usage of the software requires GRASS GIS, and it is designed to run ideally on a Linux environment. To bypass any difficulties regarding operating systems, I use the [GRASS GIS Docker Image by Mundialis](https://hub.docker.com/r/mundialis/grass-py3-pdal) to run the code.
+
+# How-to guide: 
   
-1. Inside the Command Prompt, run the docker image inside a new container: 
+## 1. Create a new container
+
+    - Inside the Command Prompt, run the docker image inside a new container: 
 ```
-docker run -it --name [container_name] loreabad6/rslopeunits:v1.0
+docker run -it --name [container_name] mundialis/grass-py3-pdal:stable-ubuntu
 ```
 
-  a. Alternatively, mount a volume (i.e. a local directory containing a DSM model) ar runtime to the container:
+    - Alternatively, mount a volume (e.g. a local directory containing a DSM/DEM model) at runtime to the container:
 ```
-docker run -it -v [local_path:/home_destination_path] --name [container_name] loreabad6/rslopeunits:v1.0
-```
-
-2. Double check `r.slopeunits` is accessible. Run:
-  - Inside Ubuntu:
-  
-```
-# grass78
-```
-- Inside GRASS:
-```
-# r.slopeunits --help
+docker run -it -v [local_path:/home/rslopeunit/] --name [container_name] mundialis/grass-py3-pdal:stable-ubuntu
 ```
 
-3. Run the module for our study case - Work in progress...
+Mountain a container is my preferred setup, since results will be saved to the host and not inside the docker, so I can easily explored them later.
 
 If you already have a setup container, with a mounted volume and some work done, then run this in your command line:
 
@@ -38,58 +31,84 @@ docker exec -it [container_name] bash
 ```
 In my case, the container name is `rslopeunits`.
 
-Then we will create a temporal location based on our georeferenced TIFF and we will execute a bash script that will export the results to the mounted volume, see [more details here](https://grass.osgeo.org/grass78/manuals/grass7.html#batch-jobs-with-the-exec-interface).
+## 2. Double check `r.slopeunits` is accessible.
 
+Here it is important to note that one needs to be in the source code location to be able to run it (at least for my case). This is why once we are there, we call the file as `./r.slopeunits`.    
+      
+```
+# Inside the container
+grass78
+# Inside GRASS, navigate to the source code location and look for the help.
+# Assuming the volume mounted is home/rslopeunit, and the code is there, then:
+cd home/rslopeunit ## path_to_code
+./r.slopeunits --help
+
+#> Usage:
+#>  r.slopeunits [-mn] demmap=name [plainsmap=name] slumap=name
+#>    [slumapclean=name] [circvarmap=name] [areamap=name] thresh=value
+#>    areamin=value [areamax=value] cvmin=value rf=value maxiteration=value
+#>    [cleansize=value] [--overwrite] [--help] [--verbose] [--quiet] [--ui]
+#> 
+#> Flags:
+#>   -m   Perform quick cleaning of small-sized areas and stripes
+#>   -n   Perform detailed cleaning of small-sized areas (slow)
+#> 
+#> Parameters:
+#>         demmap   Input digital elevation model
+#>      plainsmap   Input raster map of alluvial_plains
+#>         slumap   Output Slope Units layer (the main output)
+#>    slumapclean   Output Slope Units layer (the main output)
+#>     circvarmap   Output Circular Variance layer
+#>        areamap   Output Area layer; values in square meters
+#>         thresh   Initial threshold (m^2).
+#>        areamin   Minimum area (m^2) below whitch the slope unit is not further
+#>                  segmented
+#>        areamax   Maximum area (m^2) above which the slope unit is segmented
+#>                  irrespective of aspect
+#>          cvmin   Minimum value of the circular variance (0.0-1.0) below which
+#>                  the slope unit is not further segmented
+#>             rf   Factor used to iterativelly reduce initial threshold:
+#>                  newthresh=thresh-thresh/reductionfactor
+#>   maxiteration   maximum number of iteration to do before the procedure is in
+#>                  any case stopped
+#>      cleansize   Slope Units size to be removed
+```
+
+### 3. Run r.slopeunits for our case study.
+
+We will create a temporal location based on our georeferenced TIFF and we will execute a bash script that will export the results to the mounted volume, see [more details on batch jobs in GRASS here](https://grass.osgeo.org/grass78/manuals/grass7.html#batch-jobs-with-the-exec-interface).
 
 ```
 # Give shell file execution rights
-chmod ugo+x /home/Earthflows_R/executable_code/rslopeunit/slumap.sh
-# run shell file
-grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif --exec /home/Earthflows_R/executable_code/rslopeunit/slumap.sh
+chmod ugo+x home/rslopeunit/slumap.sh
+# Navigate to the data folder
+cd home/rslopeunit/data/
+# Run shell file
+grass78 --tmp-location home/rslopeunit/data/dsm_sample.tif --exec /home/rslopeunit/slumap.sh
 ```
 
 **NOTE!** For some reason, the bash script won't run properly. So until finding a solution to that, I ran the code inside `grass78`. So basically:
 
 ```
-## on the command line
-grass78 --tmp-location home/Earthflows_R/data_rs/dsm_filled_sa1.tif
+## On the command line
+# Navigate to the data location
+cd home/rslopeunit/data/
+# Create a temporary location
+grass78 --tmp-location dsm_sample.tif
 ## inside grass
-r.external input=/home/Earthflows_R/data_rs/dsm_filled_sa1.tif output=dsm_sa1
-v.external.out output=/home/Earthflows_R/executable_code/rslopeunit/results/
-r.slopeunits demmap=dsm_sa1 slumap=slumap_sa1 thresh=8e5 circularvariance=0.05 areamin=100000 reductionfactor=5 maxiteration=10
+# register GeoTIFF file to be used in current mapset:
+r.external input=/home/rslopeunit/data/dsm_sample.tif output=dsm
+# define output directory for files resulting from GRASS calculation:
+v.external.out output=/home/rslopeunit/results/
+# Navigate to source code for r.slopeunits
+cd home/rslopeunit/
+# Run r.slopeunits
+./r.slopeunits demmap=dsm slumap=slumap thresh=1e2 cvmin=0.15 rf=2 areamin=100000 maxiteration=10
+# Convert result to vector
+r.to.vect input=slumap output=slumap type=area --o --q
 ```
 
-**ERROR** Apparentely related to the r.slopeunits script? Here is the log:
-
-```
-Initial threshold (cells) is : 800000
-Initial minimum area (cells) is : 100000
-WARNING: MASK already exists and will be overwritten
-Traceback (most recent call last):
-  File "/usr/local/grass78/scripts/r.slopeunits", line 326, in <module>
-    main()
-  File "/usr/local/grass78/scripts/r.slopeunits", line 226, in main
-    if kv.has_key("n"):
-  File "/usr/local/grass78/etc/python/grass/script/utils.py", line 156, in __getattr__
-    return self[key]
-KeyError: 'has_key'
-Removing temporary files
-WARNING: No data base element files found
-WARNING: No data base element files found
-WARNING: No data base element files found
-WARNING: No data base element files found
-WARNING: No data base element files found
-WARNING: No data base element files found
-WARNING: No data base element files found
-```
-
-The [slumap.sh](slumap.sh) file containes code to run the slope units module in the form:
-
-```
-r.slopeunits demmap=[dem] slumap=[output_SU_map] thresh=[t, square meters] circularvariance=[c] areamin=[a, square meters] reductionfactor=[r, r>2] maxiteration=[max number of iterations]
-```
-
-### References
+# References
 
 - Alvioli M., Guzzetti F., Marchesini I. (2020). Parameter-free delineation of slope units and terrain subdivision of Italy. Geomorphology 258, 107124. https://doi.org/10.1016/j.geomorph.2020.107124
 
